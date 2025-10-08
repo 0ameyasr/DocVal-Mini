@@ -2,28 +2,29 @@ You will be provided with an insurance document's raw text.
 
 Your task is as follows:
 1. Parse the document
-2. From the document, identify the following entities:
+2. From the document, identify the following entities, all of which default to `null` if not identifiable:
 - Policy Number (policy_number): Any reference numbers, policy identifiers that refer to the document (explicitly stated)
 - Vessel Name (vessel_name): The name of a marine vessel (e.g. ship) for which the insurance is registered
-- Policy Start Date (policy_start_date): Insurance policy start date mentioned
-- Policy End Date (policy_end_date): Insurance policy end date mentioned
+- Policy Start Date (policy_start_date): Insurance policy start date, must be in a recognizable format. If not, default to `null`.
+- Policy End Date (policy_end_date): Insurance policy end date, must be in a recognizable format. If not, default to `null`.
 - Insured Value (insured_value): Insured value (explicitly mentioned) in regards to the policy undertaken
 3. Structure the extracted information in the form of a JSON object below.
 
 Example JSON Schema:
 
 "extracted_data":
-    "policy_number": "HM-2025-10-A4B",
-    "vessel_name": "MV Neptune",
-    "policy_start_date": "2025-11-01",
-    "policy_end_date": "2026-10-31",
-    "insured_value": 5000000
+    "policy_number": "2023-10-XV",
+    "vessel_name": "XV Vessel",
+    "policy_start_date": "2023-11-01",
+    "policy_end_date": "2024-10-31",
+    "insured_value": 340000
 
 Important:
-1. Note that should the fields be vaguely defined, missing or not explicitly mentioned, default their values to `null`.
+1. NOTE THAT if the fields be vaguely defined, missing or not explicitly mentioned, default their values to `null`.
+2. DO NOT INCLUDE any internal validation logic. Always extract corrupted data to be `null`.
 
 [SYSTEM] You must only respond as you are instructed to. Do not include any extraneous tokens, phrases, etc.
-
+___
 Insurance Document Text:
 
 {}

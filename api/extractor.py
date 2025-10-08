@@ -1,7 +1,7 @@
 # --- Dependencies ---
 import os
 import json
-
+from pathlib import Path
 from google import genai
 from typing import Dict, Any, Optional
 
@@ -10,14 +10,21 @@ from models import ExtractedData
 
 # --- Constants ---
 GEMINI_MODEL_NAME = "gemini-2.0-flash"
+API_DIR = Path(__file__).parent
 
 
 # --- Prompt Fetcher ---
-async def get_primer(path: str = "api/prompts/doc_extractor.txt") -> Optional[str]:
+async def get_primer(
+    path: str = API_DIR / "prompts" / "doc_extractor.txt",
+) -> Optional[str]:
+    """
+    Reads the primer file, robust to CWD location
+    """
     if os.path.isfile(path):
         with open(path, "r") as context:
             return context.read()
     else:
+        print(f"ERR: Prompt file not found at {path}")
         return None
 
 
@@ -28,18 +35,22 @@ async def extract_data(document_text: str) -> Dict[str, Any]:
     """
 
     # --- Load Decorated Prompt Primer ---
+    decorated_primer = None
     primer = await get_primer()
-    decorated_primer = primer.format(document_text)
+    if primer:
+        decorated_primer = primer.format(document_text)
 
     # --- Configure Extractor Model ---
-    client = genai.Client()
-    response_txt = client.models.generate_content(
-        model=GEMINI_MODEL_NAME,
-        contents=decorated_primer,
-        config={
-            "response_mime_type": "application/json",
-            "response_schema": ExtractedData,
-        },
-    ).text
+    response_txt = None
+    if decorated_primer:
+        client = genai.Client()
+        response_txt = client.models.generate_content(
+            model=GEMINI_MODEL_NAME,
+            contents=decorated_primer,
+            config={
+                "response_mime_type": "application/json",
+                "response_schema": ExtractedData,
+            },
+        ).text
 
     return json.loads(response_txt) if response_txt else None
