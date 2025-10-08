@@ -1,61 +1,73 @@
-# --- Dependencies ---
-import os
 import json
-from pathlib import Path
-from google import genai
-from typing import Dict, Optional, List
 
-# --- Cross-Module Imports ---
+from typing import List
+from pathlib import Path
+from datetime import date
 from models import ExtractedData, ValidationResult
 
-# --- Constants ---
-GEMINI_MODEL_NAME = "gemini-2.0-flash"
 API_DIR = Path(__file__).parent
 
+with open(API_DIR / "assets" / "valid_vessels.json", 'r') as file:
+    VALID_VESSELS = json.load(file)
 
-# --- Prompt Fetcher ---
-async def get_primer(
-    path: str = API_DIR / "prompts" / "doc_validator.txt",
-) -> Optional[str]:
-    """
-    Reads the primer file, robust to CWD location
-    """
-    if os.path.isfile(path):
-        with open(path, "r") as context:
-            return context.read()
+async def validate_data(extracted_data: ExtractedData) -> List[ValidationResult]:
+    results = []
+
+    # 1, Completeness Check
+    if not extracted_data.policy_number:
+        results.append(ValidationResult(
+            rule="Completeness Check",
+            status="FAIL",
+            message="Policy number is missing."
+        ))
     else:
-        print(f"ERR: Prompt file not found at {path}")
-        return None
+        results.append(ValidationResult(
+            rule="Completeness Check",
+            status="PASS",
+            message="Policy number is present."
+        ))
 
+    # 2, Date Consistency
+    if (extracted_data.policy_start_date and extracted_data.policy_end_date
+            and extracted_data.policy_start_date > extracted_data.policy_end_date):
+        results.append(ValidationResult(
+            rule="Date Consistency",
+            status="FAIL",
+            message="Policy end date cannot be before the start date."
+        ))
+    else:
+        results.append(ValidationResult(
+            rule="Date Consistency",
+            status="PASS",
+            message="Policy end date is after start date."
+        ))
 
-# --- Fetch Valid Vessels ---
-async def get_valid_vessels(
-    path: str = "assets/valid_vessels.json",
-) -> Optional[List[str]]:
-    if os.path.isfile(path):
-        return json.dumps(path)
+    # 3, Vessel Name Match
+    if extracted_data.vessel_name not in VALID_VESSELS:
+        results.append(ValidationResult(
+            rule="Vessel Name Match",
+            status="FAIL",
+            message=f"Vessel '{extracted_data.vessel_name}' is not on the approved list."
+        ))
+    else:
+        results.append(ValidationResult(
+            rule="Vessel Name Match",
+            status="PASS",
+            message=f"Vessel '{extracted_data.vessel_name}' is on the approved list."
+        ))
 
+    # 4, Value Check
+    if extracted_data.insured_value is None or extracted_data.insured_value <= 0:
+        results.append(ValidationResult(
+            rule="Value Check",
+            status="FAIL",
+            message="Insured value must be a positive number."
+        ))
+    else:
+        results.append(ValidationResult(
+            rule="Value Check",
+            status="PASS",
+            message="Insured value is valid."
+        ))
 
-# -- Extraction Logic --
-async def validate_data(extracted_data: ExtractedData) -> List[Dict[str, str]]:
-    """
-    Uses a generative AI model to extract structured data from document text.
-    """
-
-    # --- Load Decorated Prompt Primer ---
-    primer = await get_primer()
-    valid_vessels = await get_valid_vessels()
-    decorated_primer = primer.format(valid_vessels, extracted_data)
-
-    # --- Configure Extractor Model ---
-    client = genai.Client()
-    response_txt = client.models.generate_content(
-        model=GEMINI_MODEL_NAME,
-        contents=decorated_primer,
-        config={
-            "response_mime_type": "application/json",
-            "response_schema": list[ValidationResult],
-        },
-    ).text
-
-    return json.loads(response_txt) if response_txt else None
+    return results

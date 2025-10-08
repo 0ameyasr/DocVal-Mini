@@ -1,8 +1,8 @@
 # --- Dependencies ---
 
 from datetime import date
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field, ValidationError
+from typing import List, Optional
+from pydantic import BaseModel, Field
 
 # --- Pydantic Models ---
 

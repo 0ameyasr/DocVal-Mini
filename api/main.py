@@ -5,6 +5,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 from pydantic import ValidationError
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 
 # --- Cross-Module Imports ---
 from extractor import extract_data
@@ -16,56 +17,78 @@ from models import (
     ValidationResponse,
 )
 
-# --- Configuration ---
+# --- Model Configuration ---
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-# FastAPI App Setup
+# --- FastAPI App Setup ---
 app = FastAPI(
-    title="Mini Insurance Document Validator",
+    title="Insurance Document Validator (Mini)",
     description="An API to validate extracted data from insurance documents using AI.",
     version="1.0.0",
 )
 
 
+# --- Status ---
+@app.get("/")
+async def status() -> JSONResponse:
+    """
+    Indicates if the service is running and available.
+    """
+    return JSONResponse({"status": "Service is up and running."}, status_code=200)
+
+
 # --- API Endpoint ---
 @app.post("/validate", response_model=ValidationResponse)
-async def validate_document(request: DocumentRequest):
+async def validate_document(request: DocumentRequest) -> ValidationResponse:
     """
-    Validates an insurance document by extracting data via AI and running business rules.
+    Validates an insurance document by extracting data via Gemini AI and running business rules.
     """
     extracted_data = None
 
-    # 1. Call the AI service to extract data from the document text
-    try:
-        raw_extracted_data = await extract_data(request.document_text)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI service failed: {str(e)}")
-
-    # 2. Parse and validate the AI's output using your Pydantic model
-    try:
-        extracted_data = ExtractedData(**raw_extracted_data)
-    except ValidationError as e:
+    if not request.document_text or not request.document_text.strip():
         raise HTTPException(
-            status_code=400, detail=f"AI output did not match expected schema: {e}"
+            status_code=400, detail="Document text to be validated must not be empty."
         )
 
-    # 3. Validation logic
-    if extracted_data:
-        try:
-            validation = await validate_data(extracted_data)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"AI service failed: {str(e)}")
-
-    # 4. Return the final, structured response.
-    validation_response = None
+    # --- Extract Data ---
+    raw_extracted_data = None
     try:
-        validation_response = ValidationResponse(
+        raw_extracted_data = await extract_data(request.document_text)
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=f"AI service failed: {str(error)}")
+
+    if not raw_extracted_data:
+        raise HTTPException(
+            status_code=502, detail="No data was returned from the extraction service."
+        )
+
+    # --- Parse & Validate ---
+    try:
+        extracted_data = ExtractedData(**raw_extracted_data)
+    except ValidationError as error:
+        raise HTTPException(
+            status_code=422, detail=f"Extraction output schema validation failed: {error}"
+        )
+
+    # --- Validation ---
+    validation = None
+    try:
+        validation = await validate_data(extracted_data)
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=f"Validation logic failed: {str(error)}")
+
+    if not validation:
+        raise HTTPException(
+            status_code=502, detail="Validation returned an empty or invalid response."
+        )
+    
+    # --- Final Response ---
+    try:
+        return ValidationResponse(
             extracted_data=extracted_data, validation_results=validation
         )
     except Exception as e:
         raise HTTPException(
-            status_code=400, detail=f"AI output did not match expected schema: {e}"
+            status_code=500, detail=f"Failed to construct validation response {str(error)}"
         )
-
-    return validation_response
