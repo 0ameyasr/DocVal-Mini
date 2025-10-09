@@ -68,7 +68,8 @@ async def validate_document(request: DocumentRequest) -> ValidationResponse:
         extracted_data = ExtractedData(**raw_extracted_data)
     except ValidationError as error:
         raise HTTPException(
-            status_code=422, detail=f"Extraction output schema validation failed: {error}"
+            status_code=422,
+            detail=f"Extraction output schema validation failed: {error}",
         )
 
     # --- Validation ---
@@ -76,13 +77,15 @@ async def validate_document(request: DocumentRequest) -> ValidationResponse:
     try:
         validation = await validate_data(extracted_data)
     except Exception as error:
-        raise HTTPException(status_code=500, detail=f"Validation logic failed: {str(error)}")
+        raise HTTPException(
+            status_code=500, detail=f"Validation logic failed: {str(error)}"
+        )
 
     if not validation:
         raise HTTPException(
             status_code=502, detail="Validation returned an empty or invalid response."
         )
-    
+
     # --- Final Response ---
     try:
         return ValidationResponse(
@@ -90,5 +93,6 @@ async def validate_document(request: DocumentRequest) -> ValidationResponse:
         )
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Failed to construct validation response {str(error)}"
+            status_code=500,
+            detail=f"Failed to construct validation response {str(error)}",
         )
