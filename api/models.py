@@ -1,3 +1,5 @@
+"""Pydantic data-models for documents and validation across the project."""
+
 # --- Dependencies ---
 
 from datetime import date

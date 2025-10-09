@@ -1,3 +1,5 @@
+"""Pydantic validation logic for extracted data."""
+
 import json
 
 from typing import List
@@ -6,7 +8,7 @@ from models import ExtractedData, ValidationResult
 
 API_DIR = Path(__file__).parent
 
-with open(API_DIR / "assets" / "valid_vessels.json", "r") as file:
+with open(API_DIR / "assets" / "valid_vessels.json", mode="r", encoding="utf8") as file:
     VALID_VESSELS = json.load(file)
 
 
@@ -32,7 +34,15 @@ async def validate_data(extracted_data: ExtractedData) -> List[ValidationResult]
         )
 
     # 2, Date Consistency
-    if (
+    if not extracted_data.policy_start_date or not extracted_data.policy_end_date:
+        results.append(
+            ValidationResult(
+                rule="Date Consistency",
+                status="FAIL",
+                message="Missing policy end/start date.",
+            )
+        )
+    elif (
         extracted_data.policy_start_date
         and extracted_data.policy_end_date
         and extracted_data.policy_start_date > extracted_data.policy_end_date

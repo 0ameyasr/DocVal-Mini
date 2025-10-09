@@ -1,9 +1,12 @@
+"""Extractor module that uses Gemini to extract data from document text"""
+
 # --- Dependencies ---
 import os
 import json
 from pathlib import Path
-from google import genai
 from typing import Dict, Any, Optional
+
+from google import genai
 
 # --- Cross-Module Imports ---
 from models import ExtractedData
@@ -21,7 +24,7 @@ async def get_primer(
     Reads the primer file, robust to CWD location
     """
     if os.path.isfile(path):
-        with open(path, "r") as context:
+        with open(path, mode="r", encoding="utf8") as context:
             return context.read()
     else:
         print(f"ERR: Prompt file not found at {path}")

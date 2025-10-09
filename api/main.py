@@ -1,3 +1,5 @@
+"""Main backend API setup using FastAPI."""
+
 # --- Dependencies ---
 import os
 import google.generativeai as genai
@@ -56,7 +58,9 @@ async def validate_document(request: DocumentRequest) -> ValidationResponse:
     try:
         raw_extracted_data = await extract_data(request.document_text)
     except Exception as error:
-        raise HTTPException(status_code=500, detail=f"AI service failed: {str(error)}")
+        raise HTTPException(
+            status_code=500, detail=f"AI service failed: {str(error)}"
+        ) from error
 
     if not raw_extracted_data:
         raise HTTPException(
@@ -70,7 +74,7 @@ async def validate_document(request: DocumentRequest) -> ValidationResponse:
         raise HTTPException(
             status_code=422,
             detail=f"Extraction output schema validation failed: {error}",
-        )
+        ) from error
 
     # --- Validation ---
     validation = None
@@ -79,7 +83,7 @@ async def validate_document(request: DocumentRequest) -> ValidationResponse:
     except Exception as error:
         raise HTTPException(
             status_code=500, detail=f"Validation logic failed: {str(error)}"
-        )
+        ) from error
 
     if not validation:
         raise HTTPException(
@@ -91,8 +95,8 @@ async def validate_document(request: DocumentRequest) -> ValidationResponse:
         return ValidationResponse(
             extracted_data=extracted_data, validation_results=validation
         )
-    except Exception as e:
+    except Exception as error:
         raise HTTPException(
             status_code=500,
             detail=f"Failed to construct validation response {str(error)}",
-        )
+        ) from error
