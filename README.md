@@ -1,49 +1,24 @@
-# DocVal-Mini
+# Insurance Document Validator
 
-DocVal-Mini is an AI-powered Insurance Document Validator built with FastAPI and Google Gemini AI. This MVP automatically extracts and validates marine insurance policy data from unstructured document text.
-
-## Overview
-
-This tool processes insurance documents to extract key policy information and validates it against business rules. The system uses Google's Gemini AI for intelligent data extraction and applies rule-based validation to ensure data quality and compliance.
+An AI-powered API service that extracts and validates data from marine insurance documents using Google's Gemini AI.
 
 ## Features
 
-- **AI-Powered Extraction**: Leverages Gemini-2.0-Flash to extract structured data from unstructured document text
-- **Automated Validation**: Applies four critical business rules to ensure data integrity
-- **RESTful API**: Clean FastAPI interface for easy integration
-- **Robust Error Handling**: Comprehensive validation and error responses
-- **Type Safety**: Pydantic models throughout for data validation
+- **AI Extraction**: Automatically extracts policy details using Gemini 2.0 Flash
+- **Business Rule Validation**: Validates extracted data against predefined rules
+- **FastAPI Backend**: RESTful API with automatic documentation
+- **Streamlit Demo**: Interactive web interface for testing
 
-## Architecture
-
-```
-api/
-├── main.py           # FastAPI application and endpoint definitions
-├── extractor.py      # Gemini AI integration for data extraction
-├── validator.py      # Business rule validation logic
-├── models.py         # Pydantic data models
-├── prompts/
-│   └── doc_extractor.txt  # AI extraction prompt template
-└── assets/
-    ├── valid_vessels.json          # Approved vessel registry
-    ├── sample_document_pass.txt    # Example valid document
-    └── sample_document_fail.txt    # Example invalid document
-```
-
-## Installation
+## Quick Start
 
 ### Prerequisites
 
 - Python 3.8+
 - Google Gemini API key
 
-### Setup
+### Installation
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd DocVal-Mini
-```
+1. Clone the repository and navigate to the project directory
 
 2. Install dependencies:
 ```bash
@@ -55,36 +30,39 @@ pip install -r requirements.txt
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-4. Run the application:
+### Running the API
+
+Start the FastAPI server:
 ```bash
 uvicorn api.main:app --reload
 ```
 
 The API will be available at `http://localhost:8000`
 
-## API Usage
+- **Swagger docs**: `http://localhost:8000/docs`
+- **ReDoc**: `http://localhost:8000/redoc`
 
-### Health Check
+### Running the Demo App
 
+Launch the Streamlit interface:
 ```bash
-GET /
+streamlit run api/demo.py
 ```
 
-Returns service status.
+## API Usage
 
 ### Validate Document
 
-```bash
-POST /validate
-Content-Type: application/json
+**Endpoint**: `POST /validate`
 
+**Request Body**:
+```json
 {
-  "document_text": "*** OFFICIAL COVER NOTE - GLOBAL MARINE ASSURANCE ***\n\nPolicy ID: HM-2025-10-A4B\nVessel: MV Neptune\n..."
+  "document_text": "Your insurance document text here..."
 }
 ```
 
-#### Response
-
+**Response**:
 ```json
 {
   "extracted_data": {
@@ -99,21 +77,6 @@ Content-Type: application/json
       "rule": "Completeness Check",
       "status": "PASS",
       "message": "Policy number is present."
-    },
-    {
-      "rule": "Date Consistency",
-      "status": "PASS",
-      "message": "Policy end date is after start date."
-    },
-    {
-      "rule": "Vessel Name Match",
-      "status": "PASS",
-      "message": "Vessel 'MV Neptune' is on the approved list."
-    },
-    {
-      "rule": "Value Check",
-      "status": "PASS",
-      "message": "Insured value is valid."
     }
   ]
 }
@@ -121,69 +84,43 @@ Content-Type: application/json
 
 ## Validation Rules
 
-The system applies four critical validation rules:
+1. **Completeness Check**: Policy number must be present
+2. **Date Consistency**: End date must be after start date
+3. **Vessel Name Match**: Vessel must be on approved list
+4. **Value Check**: Insured value must be positive
 
-1. **Completeness Check**: Ensures policy number is present
-2. **Date Consistency**: Verifies policy end date is after start date
-3. **Vessel Name Match**: Confirms vessel is on the approved list
-4. **Value Check**: Validates insured value is positive
+## Project Structure
 
-## Data Extraction
-
-The AI extracts the following fields from document text:
-
-- `policy_number`: Policy identifier or reference number
-- `vessel_name`: Name of the insured marine vessel
-- `policy_start_date`: Policy effective date
-- `policy_end_date`: Policy expiration date
-- `insured_value`: Total insured value in dollars
-
-Fields that cannot be reliably extracted default to `null`.
+```
+api/
+├── main.py              # FastAPI application
+├── core.py              # Core validation logic
+├── demo.py              # Streamlit demo app
+├── extractor.py         # AI extraction module
+├── validator.py         # Business rule validation
+├── models.py            # Pydantic data models
+├── prompts/
+│   └── doc_extractor.txt  # AI prompt template
+└── assets/
+    ├── valid_vessels.json      # Approved vessel list
+    ├── sample_document_pass.txt
+    └── sample_document_fail.txt
+```
 
 ## Testing
 
 Sample documents are provided in `api/assets/`:
-
-- `sample_document_pass.txt`: Valid document that passes all checks
-- `sample_document_fail.txt`: Invalid document that fails multiple rules
-
-Run tests with:
-```bash
-pytest
-```
-
-## API Documentation
-
-Interactive API documentation is available at:
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
-
-## Security Features
-
-The extraction prompt includes safeguards against:
-- Prompt injection attacks
-- Fake data generation requests
-- Incoherent or manipulated input
-- Role-playing instructions
+- `sample_document_pass.txt` - Valid document
+- `sample_document_fail.txt` - Invalid document with errors
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+Apache License 2.0
 
-## Development
+## Tech Stack
 
-### Code Formatting
-
-Format code with Black:
-```bash
-black .
-```
-
-### Project Structure
-
-- `main.py`: API routes and application setup
-- `extractor.py`: AI-powered data extraction
-- `validator.py`: Business rule validation
-- `models.py`: Pydantic schemas for type safety
-- `prompts/`: AI prompt templates
-- `assets/`: Reference data and sample files
+- **FastAPI** - Web framework
+- **Pydantic** - Data validation
+- **Google Gemini AI** - Document extraction
+- **Streamlit** - Demo interface
+- **Uvicorn** - ASGI server
